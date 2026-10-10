@@ -26,17 +26,17 @@ jobs:
       - name: Build mod artifact
         run: |
           chmod +x gradlew
-          ./gradlew clean dex
+          ./gradlew dex
       - name: Upload built mod artifact as a GitHub Action artifact
         uses: actions/upload-artifact@v7
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
-          name: ModTemplate (zipped)
-          path: build/libs/ModTemplate.jar
+          name: Gunmetal (zipped)
+          path: build/libs/Gunmetal.jar
           if-no-files-found: error
           compression-level: 0
       - name: Upload built mod artifact into release
         uses: softprops/action-gh-release@v3
         if: github.event_name == 'release' && github.event.action == 'created'
         with:
-          files: build/libs/ModTemplate.jar
+          files: build/libs/Gunmetal.jar
