@@ -2,6 +2,7 @@ package gunmetal;
 
 import arc.Events;
 import gunmetal.ui.*;
+import gunmetal.world.blocks.power.*;
 import gunmetal.world.blocks.production.*;
 import mindustry.content.*;
 import mindustry.game.*;
@@ -18,6 +19,24 @@ public class Gunmetal extends Mod{
         EntityRegistry.registerUnits();
 
         // Testing
+        new PowerTower("test-power-tower"){{
+            size = 1;
+            laserRange = 16;
+            category = Category.power;
+            buildVisibility = BuildVisibility.shown;
+
+            maxNodes = 4;
+        }};
+
+        new PowerPylon("test-power-pylon"){{
+            size = 1;
+            laserRange = 4;
+            category = Category.power;
+            buildVisibility = BuildVisibility.shown;
+
+            maxNodes = 8;
+        }};
+
         new RecipeCrafter("test-recipe-crafter"){{
             size = 3;
             buildVisibility = BuildVisibility.shown;
