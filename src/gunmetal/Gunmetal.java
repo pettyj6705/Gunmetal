@@ -1,10 +1,10 @@
 package gunmetal;
 
 import arc.Events;
-import gunmetal.ui.RecipeDialog;
+import gunmetal.ui.*;
 import gunmetal.world.blocks.production.*;
 import mindustry.content.*;
-import mindustry.game.EventType;
+import mindustry.game.*;
 import mindustry.mod.*;
 import gunmetal.gen.*;
 import mindustry.type.*;
@@ -24,14 +24,20 @@ public class Gunmetal extends Mod{
             category = Category.crafting;
 
         }}.setRecipes(
-                new Recipe(5,
+                new Recipe("silicon", 5,
                         new ItemStack[]{new ItemStack(Items.coal, 1), new ItemStack(Items.sand, 5)},
                         new ItemStack[]{new ItemStack(Items.silicon, 5)}
+                ),
+                new Recipe("metaglass", 5,
+                        new ItemStack[]{new ItemStack(Items.lead, 5), new ItemStack(Items.sand, 5)},
+                        new ItemStack[]{new ItemStack(Items.metaglass, 5)}
                 )
         );
 
         // UI initialization
         Events.on(EventType.ClientLoadEvent.class, e -> {
+            GunmetalStyles.load();
+
             recipeDialog = new RecipeDialog();
         });
     }

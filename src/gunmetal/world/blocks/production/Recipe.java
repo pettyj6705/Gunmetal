@@ -14,10 +14,12 @@ public class Recipe {
     public ItemStack[] outputItems;
     public LiquidStack[] outputLiquids;
 
+    public String name = "recipe";
+
     // CraftTime in seconds
     public float craftTime;
 
-    public Recipe(float craftTime, ItemStack[] consumeItems, LiquidStack[] consumeLiquids, ItemStack[] outputItems, LiquidStack[] outputLiquids){
+    public Recipe(String name, float craftTime, ItemStack[] consumeItems, LiquidStack[] consumeLiquids, ItemStack[] outputItems, LiquidStack[] outputLiquids){
         this.consumeItems = consumeItems;
         this.consumeLiquids = consumeLiquids;
 
@@ -25,6 +27,7 @@ public class Recipe {
         this.outputLiquids = outputLiquids;
 
         this.craftTime = craftTime;
+        this.name = name;
 
         itemFilter = new boolean[content.items().size];
         liquidFilter = new boolean[content.liquids().size];
@@ -37,7 +40,7 @@ public class Recipe {
         }
     }
 
-    public Recipe(float craftTime, ItemStack[] consumeItems, ItemStack[] outputItems){
-        this(craftTime, consumeItems, new LiquidStack[]{}, outputItems, new LiquidStack[]{});
+    public Recipe(String name, float craftTime, ItemStack[] consumeItems, ItemStack[] outputItems){
+        this(name, craftTime, consumeItems, new LiquidStack[]{}, outputItems, new LiquidStack[]{});
     }
 }

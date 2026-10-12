@@ -3,7 +3,7 @@ package gunmetal.world.blocks.production;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
 import arc.util.*;
-import gunmetal.Gunmetal;
+import gunmetal.*;
 import gunmetal.ui.*;
 import mindustry.gen.*;
 import mindustry.type.*;
@@ -15,6 +15,7 @@ import mindustry.world.blocks.production.*;
 //    - Animations!!
 //    - Multiplayer sync
 //    - Building data saving
+//    - Power mechanics
 public class RecipeCrafter extends GenericCrafter {
     public Seq<Recipe> recipes = new Seq<>();
 
@@ -44,6 +45,11 @@ public class RecipeCrafter extends GenericCrafter {
         public Recipe activeRecipe = recipes.get(0);
 
         public float craftingTime = 0;
+
+        public void switchRecipe(Recipe recipe){
+            items.clear();
+            activeRecipe = recipe;
+        }
 
         @Override
         public void updateTile() {
