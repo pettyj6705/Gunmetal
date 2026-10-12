@@ -1,10 +1,13 @@
 package gunmetal.world.blocks.production;
 
+import arc.Core;
+import arc.math.geom.*;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
 import arc.util.*;
 import gunmetal.*;
 import gunmetal.ui.*;
+import mindustry.*;
 import mindustry.gen.*;
 import mindustry.type.*;
 import mindustry.world.blocks.production.*;
@@ -38,6 +41,10 @@ public class RecipeCrafter extends GenericCrafter {
         }
     }
 
+    public void drawCrafting(float x, float y, RecipeCrafterBuild b){
+
+    }
+
     // Naive(?) implementation so far
     public class RecipeCrafterBuild extends GenericCrafterBuild {
         public boolean crafting = false;
@@ -49,6 +56,14 @@ public class RecipeCrafter extends GenericCrafter {
         public void switchRecipe(Recipe recipe){
             items.clear();
             activeRecipe = recipe;
+            clogged = false;
+            crafting = false;
+            craftingTime = 0;
+        }
+
+        // Used inside RecipeDialog's inventory display
+        public void drawCrafting(float x, float y){
+            ((RecipeCrafter) block).drawCrafting(x, y, this);
         }
 
         @Override
@@ -76,7 +91,7 @@ public class RecipeCrafter extends GenericCrafter {
                 // progress crafting
                 if(!clogged) craftingTime += Time.delta / 60;
 
-                Log.info(craftingTime);
+                // Log.info(craftingTime);
 
                 // Output products and exit crafting state
                 if(craftingTime >= activeRecipe.craftTime){
@@ -132,10 +147,86 @@ public class RecipeCrafter extends GenericCrafter {
 
         @Override
         public void buildConfiguration(Table table) {
-            // TODO: Make proper configuration UI.
-            // Show block inventory, current recipe, & recipe selection button
             super.buildConfiguration(table);
-            table.button("Recipe", () -> Gunmetal.recipeDialog.show(this));
+            table.table(t -> {
+                t.background(Tex.inventory);
+
+
+                t.table(c -> {
+                    c.defaults().size(40f).top().left();
+                    c.top().left();
+
+                    int i = 0;
+                    for(ItemStack stack : activeRecipe.consumeItems){
+                        c.add(GunmetalStyles.itemImage(stack.item.uiIcon, () -> GunmetalStyles.round(items.get(stack.item))));
+                        i += 1;
+
+                        if(i > 3){
+                            c.row();
+                            i = 0;
+                        }
+                    }
+
+                    for(LiquidStack stack : activeRecipe.consumeLiquids){
+                        c.add(GunmetalStyles.itemImage(stack.liquid.uiIcon, () -> GunmetalStyles.round(liquids.get(stack.liquid))));
+                        i += 1;
+
+                        if(i > 3){
+                            c.row();
+                            i = 0;
+                        }
+                    }
+                }).width(120f).top().left();
+
+                t.row();
+
+                t.table(c -> {
+                    c.image(Icon.down).size(20f).center();
+                }).height(40f).width(120f).top().left();
+
+                t.row();
+
+                t.table(c -> {
+                    c.defaults().size(40f).top().left();
+                    c.top().left();
+
+                    int i = 0;
+                    for(ItemStack stack : activeRecipe.outputItems){
+                        c.add(GunmetalStyles.itemImage(stack.item.uiIcon, () -> GunmetalStyles.round(items.get(stack.item))));
+                        i += 1;
+
+                        if(i > 3){
+                            c.row();
+                            i = 0;
+                        }
+                    }
+
+                    for(LiquidStack stack : activeRecipe.outputLiquids){
+                        c.add(GunmetalStyles.itemImage(stack.liquid.uiIcon, () -> GunmetalStyles.round(liquids.get(stack.liquid))));
+                        i += 1;
+
+                        if(i > 3){
+                            c.row();
+                            i = 0;
+                        }
+                    }
+                }).width(120f).top().left();
+            });
+        }
+
+        @Override
+        public boolean onConfigureBuildTapped(Building other) {
+            if(other == this){
+                Gunmetal.recipeDialog.show(this);
+            }
+
+            return other != this;
+        }
+
+        @Override
+        public void updateTableAlign(Table table) {
+            Vec2 pos = Core.input.mouseScreen(x + block.size * Vars.tilesize / 2f, y + block.size * Vars.tilesize / 2f);
+            table.setPosition(pos.x - Core.scene.marginLeft, pos.y - Core.scene.marginBottom, Align.topLeft);
         }
 
         @Override

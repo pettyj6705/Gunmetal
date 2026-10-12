@@ -1,11 +1,14 @@
 package gunmetal.ui;
 
 import arc.Core;
+import arc.graphics.g2d.*;
 import arc.scene.event.*;
 import arc.scene.ui.*;
 import arc.scene.ui.layout.*;
+import arc.util.*;
 import gunmetal.world.blocks.production.*;
 import mindustry.gen.*;
+import mindustry.graphics.*;
 import mindustry.type.*;
 import mindustry.ui.*;
 import mindustry.ui.dialogs.*;
@@ -20,6 +23,8 @@ public class RecipeDialog extends BaseDialog {
     }
 
     public Dialog show(RecipeCrafter.RecipeCrafterBuild build) {
+        Recipe activeRecipe = build.activeRecipe;
+
         // Clear
         cont.clearChildren();
         titleTable.clear();
@@ -56,8 +61,154 @@ public class RecipeDialog extends BaseDialog {
 
                 t.row();
 
-                // TODO: Make crafting progress & block inventory UI
-                t.table(Styles.black).grow();
+                // Cool crafting UI
+                // Cache items so we don't have to run through the recipe everytime.
+                // Store them as tables so we can just call its drawer in the main table
+                Table[] ingredients = new Table[activeRecipe.consumeItems.length + activeRecipe.consumeLiquids.length];
+                Table[] products = new Table[activeRecipe.outputItems.length + activeRecipe.outputLiquids.length];
+
+                // Ingredients
+                int i = 0;
+                for(ItemStack stack : activeRecipe.consumeItems){
+                    Table card = new Table(c -> {
+                        c.background(Tex.button);
+                        c.margin(10f);
+                        c.center();
+
+                        c.image(stack.item.fullIcon).size(40f).padBottom(10f);
+                        c.row();
+                        c.label(() -> build.items.get(stack.item) + " / " + stack.amount);
+                    });
+
+                    ingredients[i] = card;
+                    i += 1;
+                }
+
+                i = 0;
+                for(LiquidStack stack : activeRecipe.consumeLiquids){
+                    Table card = new Table(c -> {
+                        c.background(Tex.button);
+                        c.margin(10f);
+                        c.center();
+
+                        c.image(stack.liquid.fullIcon).size(40f).padBottom(10f);
+                        c.row();
+                        c.label(() -> build.liquids.get(stack.liquid) + " / " + stack.amount);
+                    });
+
+                    ingredients[i] = card;
+                    i += 1;
+                }
+
+                // Products
+                i = 0;
+                for(ItemStack stack : activeRecipe.outputItems){
+                    Table card = new Table(c -> {
+                        c.background(Tex.button);
+                        c.margin(10f);
+                        c.center();
+
+                        c.image(stack.item.fullIcon).size(40f).padBottom(10f);
+                        c.row();
+                        c.label(() -> "" + build.items.get(stack.item));
+                    });
+
+                    products[i] = card;
+                    i += 1;
+                }
+
+                i = 0;
+                for(LiquidStack stack : activeRecipe.outputLiquids){
+                    Table card = new Table(c -> {
+                        c.background(Tex.button);
+                        c.margin(10f);
+                        c.center();
+
+                        c.image(stack.liquid.fullIcon).size(40f).padBottom(10f);
+                        c.row();
+                        c.label(() -> "" + build.liquids.get(stack.liquid));
+                    });
+
+                    products[i] = card;
+                    i += 1;
+                }
+
+                Table coolTable = new Table(c -> {
+                    c.background(Styles.black);
+
+                    c.update(() -> {
+                        for(Table card : ingredients){
+                            if(card != null) card.act(Time.delta);
+                        }
+
+                        for(Table card : products){
+                            if(card != null) card.act(Time.delta);
+                        }
+                    });
+                }){
+                    @Override
+                    public void draw() {
+                        float w = this.width;
+                        float h = this.height;
+
+                        Tmp.m4.set(Draw.trans());
+                        Draw.trans(this.computeTransform());
+
+                        this.drawBackground(0, 0);
+
+                        // TODO: Block crafting
+                        build.drawCrafting(w / 2f, h / 2f);
+
+                        // Block inventory
+                        float margin = 75f;
+                        float rowHeight = this.height - (margin * 2);
+                        float ingredientRowSpacing = rowHeight / ingredients.length;
+
+                        // Ingredient Cards
+                        for(int i = 0; i < ingredients.length; i++){
+                            Table ingredient = ingredients[i];
+                            float x = margin;
+                            float y = margin + (i * ingredientRowSpacing) + (ingredientRowSpacing / 2);
+
+                            ingredient.setSize(75f);
+                            ingredient.setPosition(x - ingredient.getWidth() / 2f, y - ingredient.getHeight() / 2f);
+                            ingredient.draw();
+
+                            Draw.rect(Icon.rightOpen.getRegion(), x - 55f, y, 13f, 20f);
+                        }
+
+                        float productRowSpacing = rowHeight / products.length;
+
+                        // Product Cards
+                        for(int i = 0; i < products.length; i++){
+                            Table product = products[i];
+                            float x = this.getWidth() - margin;
+                            float y = margin + (i * ingredientRowSpacing) + (productRowSpacing / 2);
+
+                            product.setSize(75f);
+                            product.setPosition(x - product.getWidth() / 2f, y - product.getHeight() / 2f);
+                            product.draw();
+
+                            Draw.rect(Icon.rightOpen.getRegion(), x + 55f, y, 13f, 20f);
+                        }
+
+                        // Progress bar
+                        float barMargin = 20f;
+                        float barHeight = 15f;
+                        float craftProgress = build.craftingTime / activeRecipe.craftTime;
+                        float x2 = this.getWidth() - barMargin;
+
+                        Draw.color(Pal.gray);
+                        Fill.quad(barMargin, barMargin, x2, barMargin, x2, barMargin + barHeight, barMargin, barMargin + barHeight);
+
+                        Draw.color(Pal.accent);
+                        Fill.quad(barMargin, barMargin, (x2 - barMargin) * craftProgress + barMargin, barMargin, (x2 - barMargin) * craftProgress + barMargin, barMargin + barHeight , barMargin, barMargin + barHeight);
+
+                        Draw.trans(Tmp.m4);
+                    }
+                };
+
+                t.add(coolTable).grow();
 
                 t.row();
 
