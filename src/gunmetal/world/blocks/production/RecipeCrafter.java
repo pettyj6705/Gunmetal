@@ -1,6 +1,7 @@
 package gunmetal.world.blocks.production;
 
-import arc.Core;
+import arc.*;
+import arc.graphics.g2d.*;
 import arc.math.geom.*;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
@@ -8,19 +9,24 @@ import arc.util.*;
 import gunmetal.*;
 import gunmetal.ui.*;
 import mindustry.*;
+import mindustry.game.*;
 import mindustry.gen.*;
+import mindustry.graphics.*;
 import mindustry.type.*;
+import mindustry.world.*;
+import mindustry.world.blocks.distribution.*;
+import mindustry.world.blocks.liquid.*;
 import mindustry.world.blocks.production.*;
 
 // TODO: Handle these later
 //    - Improve liquid handling
-//    - I/O Ports
 //    - Animations!!
 //    - Multiplayer sync
 //    - Building data saving
 //    - Power mechanics
 public class RecipeCrafter extends GenericCrafter {
     public Seq<Recipe> recipes = new Seq<>();
+    public Seq<Ports.Port> ports = new Seq<>();
 
     public RecipeCrafter(String name){
         super(name);
@@ -33,6 +39,8 @@ public class RecipeCrafter extends GenericCrafter {
         configurable = true;
         logicConfigurable = false;
         consumesTap = true;
+
+        rotate = true;
     }
 
     public void setRecipes(Recipe... recipes){
@@ -45,13 +53,30 @@ public class RecipeCrafter extends GenericCrafter {
 
     }
 
+    public void addOutputPort(float x, float y){
+        ports.add(new Ports.Port(Ports.PortType.Output, new Vec2(x, y)));
+    }
+
+    public void addInputPort(float x, float y){
+        ports.add(new Ports.Port(Ports.PortType.Input, new Vec2(x, y)));
+    }
+
     // Naive(?) implementation so far
     public class RecipeCrafterBuild extends GenericCrafterBuild {
+        public Ports ports;
+
         public boolean crafting = false;
         public boolean clogged = false;
         public Recipe activeRecipe = recipes.get(0);
 
         public float craftingTime = 0;
+
+        @Override
+        public Building init(Tile tile, Team team, boolean shouldAdd, int rotation) {
+            Building b = super.init(tile, team, shouldAdd, rotation);
+            this.ports = new Ports(((RecipeCrafter) this.block).ports);
+            return b;
+        }
 
         public void switchRecipe(Recipe recipe){
             items.clear();
@@ -66,6 +91,25 @@ public class RecipeCrafter extends GenericCrafter {
             ((RecipeCrafter) block).drawCrafting(x, y, this);
         }
 
+        // TODO: proper drawers
+        @Override
+        public void draw() {
+            Draw.color(Pal.darkishGray);
+            Fill.square(x, y, (block.size / 2f) * Vars.tilesize);
+
+            Draw.color(Pal.accent);
+            Log.info(rotation);
+            Tmp.v2.set(0.5f * Vars.tilesize, 0).rotate(90 * rotation);
+            Drawf.arrow(x, y, x + Tmp.v2.x, y + Tmp.v2.y, 5, 2);
+        }
+
+        // TODO: Draw ports
+        @Override
+        public void drawConfigure() {
+            super.drawConfigure();
+        }
+
+        // TODO: Split this up into different methods.
         @Override
         public void updateTile() {
             if(activeRecipe == null || efficiency <= 0) return;
@@ -125,12 +169,46 @@ public class RecipeCrafter extends GenericCrafter {
             }
 
             // Continuously output products
+
             for (LiquidStack stack : activeRecipe.outputLiquids) {
-                dumpLiquid(stack.liquid);
+                Liquid liquid = stack.liquid;
+                int dump = cdump;
+
+                for(int i = 0; i < this.proximity.size; ++i) {
+                    this.incrementDump(this.proximity.size);
+                    Building other = this.proximity.get((i + dump) % this.proximity.size);
+
+                    other = other.getLiquidDestination(this, liquid);
+
+                    // Only output to pipes
+                    if (other instanceof Conduit.ConduitBuild && liquids.get(liquid) > 0 && other.block.hasLiquids && this.canDumpLiquid(other, liquid) && other.liquids != null && ports.findPorts(Ports.PortType.Output, this, other) != null) {
+                        float ofract = other.liquids.get(liquid) / other.block.liquidCapacity;
+                        float fract = this.liquids.get(liquid) / this.block.liquidCapacity;
+                        if (ofract < fract) {
+                            this.transferLiquid(other, (fract - ofract) * this.block.liquidCapacity / 2.0F, liquid);
+                        }
+                    }
+                }
             }
 
             for (ItemStack stack : activeRecipe.outputItems) {
-                dump(stack.item);
+                Item todump = stack.item;
+                int dump = cdump;
+
+                if(items.get(todump) <= 0) continue;
+
+                for(int i = 0; i < this.proximity.size; ++i) {
+                    Building other = this.proximity.get((i + dump) % this.proximity.size);
+
+                    // Only output to conveyors
+                    if (other instanceof Conveyor.ConveyorBuild && items.get(todump) > 0 && other.acceptItem(this, todump) && this.canDump(other, todump) && ports.findPorts(Ports.PortType.Output, this, other) != null) {
+                        other.handleItem(this, todump);
+                        this.items.remove(todump, 1);
+                        this.incrementDump(this.proximity.size);
+                    }
+
+                    this.incrementDump(this.proximity.size);
+                }
             }
         }
 
@@ -231,14 +309,14 @@ public class RecipeCrafter extends GenericCrafter {
 
         @Override
         public boolean acceptItem(Building source, Item item) {
-            // TODO: I/O Port mechanics
-            return activeRecipe.itemFilter[item.id] && items.get(item) < getMaximumAccepted(item);
+            // Only accept items from conveyors
+            return source instanceof Conveyor.ConveyorBuild && activeRecipe.itemFilter[item.id] && items.get(item) < getMaximumAccepted(item) && ports.findPorts(Ports.PortType.Input, this, source) != null;
         }
 
         @Override
         public boolean acceptLiquid(Building source, Liquid liquid) {
-            // TODO: I/O Port mechanics
-            return activeRecipe.liquidFilter[liquid.id];
+            // Only accept liquids from pipes
+            return source instanceof Conduit.ConduitBuild && activeRecipe.liquidFilter[liquid.id] && ports.findPorts(Ports.PortType.Input, this, source) != null;
         }
     }
 }

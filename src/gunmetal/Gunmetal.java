@@ -42,6 +42,13 @@ public class Gunmetal extends Mod{
             buildVisibility = BuildVisibility.shown;
             category = Category.crafting;
 
+            addInputPort(-2, 1);
+            addInputPort(-2, 0);
+            addInputPort(-2, -1);
+
+            addOutputPort(2, 1);
+            addOutputPort(2, 0);
+            addOutputPort(2, -1);
         }}.setRecipes(
                 new Recipe("silicon", 5,
                         new ItemStack[]{new ItemStack(Items.coal, 1), new ItemStack(Items.sand, 5)},
