@@ -2,6 +2,7 @@ package gunmetal.ui;
 
 import arc.Core;
 import arc.graphics.g2d.*;
+import arc.input.*;
 import arc.scene.event.*;
 import arc.scene.ui.*;
 import arc.scene.ui.layout.*;
@@ -36,14 +37,14 @@ public class RecipeDialog extends BaseDialog {
 
         cont.center();
 
-        cont.table(bg -> {
+        Table window = cont.table(bg -> {
 
-            bg.background(Styles.black8);
+            bg.background(Styles.black6);
             bg.margin(20f);
 
             bg.table(t -> {
-                t.left();
-                t.button("Exit", this::hide).left();
+                t.right();
+                t.button(Icon.cancel, Styles.emptyi, this::hide).size(40f).right();
             }).colspan(2).height(50f).growX().padBottom(10f);
 
             bg.row();
@@ -250,8 +251,21 @@ public class RecipeDialog extends BaseDialog {
 
                 }).grow();
             }).size(divx * 2, divy * 5).center().padLeft(10f);
-        }).center();
+        }).center().get();
         cont.pack();
+
+        // Close when clicking outside of window
+        cont.touchable(() -> Touchable.enabled);
+        cont.addListener(new ClickListener(){
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, KeyCode button) {
+                if(!((x >= window.x && x <= window.x + window.getWidth()) && (y >= window.y && y <= window.y + window.getHeight()))){
+                    hide();
+                };
+                return super.touchDown(event, x, y, pointer, button);
+            }
+        });
+
         return show();
     }
 
