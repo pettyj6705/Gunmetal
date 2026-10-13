@@ -36,7 +36,7 @@ public class RecipeConfirmDialog extends BaseDialog {
             t.table(c -> {
                 c.background(Tex.button);
 
-                RecipeDialog.buildRecipeInfo(recipe, c);
+                RecipeDialog.buildRecipeInfo(build.activeRecipe, c);
             }).height(170f).growX().left().padTop(10f);
 
             t.row();
@@ -48,7 +48,7 @@ public class RecipeConfirmDialog extends BaseDialog {
             t.table(c -> {
                 c.background(Tex.button);
 
-                RecipeDialog.buildRecipeInfo(build.activeRecipe, c);
+                RecipeDialog.buildRecipeInfo(recipe, c);
             }).height(170f).growX().left().padTop(10f);
 
             t.row();
