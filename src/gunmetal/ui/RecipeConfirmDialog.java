@@ -55,7 +55,7 @@ public class RecipeConfirmDialog extends BaseDialog {
 
             t.table(b -> {
                 b.button("Switch Recipe", () -> {
-                    build.switchRecipe(recipe);
+                    build.switchRecipe(recipe, true);
                     hide();
                     Gunmetal.recipeDialog.show(build);
                 }).grow().padRight(5f);

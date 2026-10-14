@@ -6,9 +6,11 @@ import arc.math.geom.*;
 import arc.scene.ui.layout.*;
 import arc.struct.*;
 import arc.util.*;
+import arc.util.io.*;
 import gunmetal.*;
 import gunmetal.ui.*;
 import mindustry.*;
+import mindustry.entities.units.*;
 import mindustry.game.*;
 import mindustry.gen.*;
 import mindustry.graphics.*;
@@ -21,8 +23,6 @@ import mindustry.world.blocks.production.*;
 // TODO: Handle these later
 //    - Improve liquid handling
 //    - Animations!!
-//    - Multiplayer sync
-//    - Building data saving
 //    - Power mechanics
 public class RecipeCrafter extends GenericCrafter {
     public Seq<Recipe> recipes = new Seq<>();
@@ -41,6 +41,10 @@ public class RecipeCrafter extends GenericCrafter {
         consumesTap = true;
 
         rotate = true;
+
+        config(Integer.class, (RecipeCrafterBuild b, Integer i) -> {
+            b.switchRecipe(recipes.get(i), false);
+        });
     }
 
     public void setRecipes(Recipe... recipes){
@@ -61,6 +65,16 @@ public class RecipeCrafter extends GenericCrafter {
         ports.add(new Ports.Port(Ports.PortType.Input, new Vec2(x, y)));
     }
 
+    @Override
+    public void drawPlan(BuildPlan plan, Eachable<BuildPlan> list, boolean valid) {
+        super.drawPlan(plan, list, valid);
+    }
+
+    @Override
+    public TextureRegion getPlanRegion(BuildPlan plan, Eachable<BuildPlan> list) {
+        return Core.atlas.find(name + "-0");
+    }
+
     // Naive(?) implementation so far
     public class RecipeCrafterBuild extends GenericCrafterBuild {
         public Ports ports;
@@ -78,12 +92,14 @@ public class RecipeCrafter extends GenericCrafter {
             return b;
         }
 
-        public void switchRecipe(Recipe recipe){
+        public void switchRecipe(Recipe recipe, boolean config){
             items.clear();
             activeRecipe = recipe;
             clogged = false;
             crafting = false;
             craftingTime = 0;
+
+            if(config) configure(recipes.indexOf(recipe));
         }
 
         // Used inside RecipeDialog's inventory display
@@ -94,13 +110,7 @@ public class RecipeCrafter extends GenericCrafter {
         // TODO: proper drawers
         @Override
         public void draw() {
-            Draw.color(Pal.darkishGray);
-            Fill.square(x, y, (block.size / 2f) * Vars.tilesize);
-
-            Draw.color(Pal.accent);
-            Log.info(rotation);
-            Tmp.v2.set(0.5f * Vars.tilesize, 0).rotate(90 * rotation);
-            Drawf.arrow(x, y, x + Tmp.v2.x, y + Tmp.v2.y, 5, 2);
+            Draw.rect(name + "-" + rotation, x, y);
         }
 
         // TODO: Draw ports
@@ -108,6 +118,8 @@ public class RecipeCrafter extends GenericCrafter {
         public void drawConfigure() {
             super.drawConfigure();
         }
+
+        // Recipe crafting logic
 
         // TODO: Split this up into different methods.
         @Override
@@ -223,6 +235,8 @@ public class RecipeCrafter extends GenericCrafter {
             }
         }
 
+        // Configuration/Recipe selection
+
         @Override
         public void buildConfiguration(Table table) {
             super.buildConfiguration(table);
@@ -307,6 +321,8 @@ public class RecipeCrafter extends GenericCrafter {
             table.setPosition(pos.x - Core.scene.marginLeft, pos.y - Core.scene.marginBottom, Align.topLeft);
         }
 
+        // I/O Logic
+
         @Override
         public boolean acceptItem(Building source, Item item) {
             // Only accept items from conveyors
@@ -317,6 +333,35 @@ public class RecipeCrafter extends GenericCrafter {
         public boolean acceptLiquid(Building source, Liquid liquid) {
             // Only accept liquids from pipes
             return source instanceof Conduit.ConduitBuild && activeRecipe.liquidFilter[liquid.id] && ports.findPorts(Ports.PortType.Input, this, source) != null;
+        }
+
+        // State saving/loading
+
+        @Override
+        public byte version() {
+            return 1;
+        }
+
+        @Override
+        public void write(Writes write) {
+            super.write(write);
+
+            write.i(recipes.indexOf(activeRecipe));
+            write.b(this.crafting ? 1 : 0);
+            write.b(this.clogged ? 1 : 0);
+            write.f(this.craftingTime);
+        }
+
+        @Override
+        public void read(Reads read, byte revision) {
+            super.read(read, revision);
+
+            if(revision == 1) {
+                this.activeRecipe = recipes.get(read.i());
+                this.crafting = (read.b() == 1);
+                this.clogged = (read.b() == 1);
+                this.craftingTime = read.f();
+            }
         }
     }
 }

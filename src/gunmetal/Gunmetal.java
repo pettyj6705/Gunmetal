@@ -1,6 +1,6 @@
 package gunmetal;
 
-import arc.Events;
+import arc.*;
 import gunmetal.ui.*;
 import gunmetal.world.blocks.power.*;
 import gunmetal.world.blocks.production.*;
@@ -37,7 +37,7 @@ public class Gunmetal extends Mod{
             maxNodes = 8;
         }};
 
-        new RecipeCrafter("test-recipe-crafter"){{
+        new RecipeCrafter("smelter"){{
             size = 3;
             buildVisibility = BuildVisibility.shown;
             category = Category.crafting;
